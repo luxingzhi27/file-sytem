@@ -23,6 +23,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         self.text_editor.text_saved.connect(self.save_file)
         self.listWidget.doubleClicked.connect(self.on_double_clicked)
         self.listWidget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.listWidget.setUniformItemSizes(False)
         self.listWidget.customContextMenuRequested.connect(self.show_menu)
 
         self.new_dir_button.clicked.connect(self.new_directory_dialog)
@@ -125,13 +126,14 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             layout = QHBoxLayout()
             layout.addWidget(name_label)
             layout.addItem(QSpacerItem(
-                40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+                20, 5, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
             layout.addWidget(size_label)
             layout.addItem(QSpacerItem(
-                20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+                20, 5, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
             layout.addWidget(time_label)
             layout.setContentsMargins(0, 0, 0, 0)
             widget.setLayout(layout)
+            item.setSizeHint(widget.sizeHint())
             self.listWidget.addItem(item)
             item.setIcon(QIcon("resources/file.svg"))
             self.listWidget.setItemWidget(item, widget)
@@ -146,10 +148,11 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             widget = QWidget()
             layout.addWidget(name_label)
             spacer = QSpacerItem(
-                40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+                40, 5, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
             layout.addItem(spacer)
             layout.addWidget(num_label)
             widget.setLayout(layout)
+            item.setSizeHint(widget.sizeHint())
             self.listWidget.addItem(item)
             self.listWidget.setItemWidget(item, widget)
             self.dirs.append(directory)
