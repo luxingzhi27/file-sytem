@@ -1,7 +1,8 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QAction, QFileDialog, QPushButton, QVBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QAction, QFileDialog, QPushButton, QVBoxLayout, QMessageBox, QShortcut
 from editor_ui import Ui_MainWindow
 from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtGui import QKeySequence
 
 
 class TextEditor(QMainWindow, Ui_MainWindow):
@@ -15,6 +16,8 @@ class TextEditor(QMainWindow, Ui_MainWindow):
         self.textEdit.textChanged.connect(self.modified)
         self.is_saved = True
         self.file_name = ""
+        self.shortcut_save = QShortcut(QKeySequence("Ctrl+S"), self)
+        self.shortcut_save.activated.connect(self.save_file)
 
     def modified(self):
         self.is_saved = False

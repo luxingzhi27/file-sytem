@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QMainWindow, QListWidget, QListWidgetItem, QDialog, QMenu, QLabel, QHBoxLayout, QSpacerItem
+from PyQt5.QtWidgets import QWidget, QMainWindow, QListWidget, QListWidgetItem, QDialog, QMenu, QLabel, QHBoxLayout, QSpacerItem, QInputDialog
 from PyQt5.QtCore import Qt
 from file_system_ui import Ui_MainWindow
 from file_system_core import FileSystem as FS, File, Directory, load_from_disk
@@ -30,6 +30,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         self.return_button.clicked.connect(self.back_to_parent)
         self.return_root_button.clicked.connect(self.back_to_root)
         self.delete_button.clicked.connect(self.delete)
+        self.rename_button.clicked.connect(self.rename)
         self.list()
         self.path_label.setText(self.fs.current_directory.name)
         if self.fs.current_directory.name == "/":
@@ -45,6 +46,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         new_directory_action = menu.addAction("新建文件夹")
         delete_action = menu.addAction("删除")
         open_file_action = menu.addAction("打开文件")
+        rename_action = menu.addAction("重命名")
 
         # 显示菜单，并等待用户选择
         action = menu.exec_(self.listWidget.mapToGlobal(pos))
@@ -57,7 +59,13 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         elif action == delete_action:
             self.delete()
         elif action == open_file_action:
-            self.open_file(self.listWidget.currentItem().text())
+            item = self.listWidget.currentItem()
+            self.open_file(self.listWidget.itemWidget(
+                item).layout().itemAt(0).widget().text())
+        elif action == rename_action:
+            item = self.listWidget.currentItem()
+            self.rename(self.listWidget.itemWidget(
+                item).layout().itemAt(0).widget().text())
 
     def new_directory_dialog(self):
         dialog = NewItemDialog(self)
@@ -109,7 +117,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         self.listWidget.clear()
         for file in self.fs.current_directory.files:
             item = QListWidgetItem()
-            size_label = QLabel(str(self.fs.get_file_size(file)) + "KB")
+            size_label = QLabel(self.format_size(self.fs.get_file_size(file)))
             time_label = QLabel(self.fs.get_file_mtime(
                 file).strftime("%Y-%m-%d %H:%M:%S"))
             name_label = QLabel(file.name)
@@ -172,6 +180,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
     def save_file(self, text):
         self.fs.write_file(self.text_editor.file_name,
                            bytearray(text, "utf-8"))
+        self.list()
 
     def open_directory(self, name):
         self.return_button.setEnabled(True)
@@ -209,6 +218,47 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             return "{:.1f} MB".format(size / (1024 * 1024))
         else:
             return "{:.1f} GB".format(size / (1024 * 1024 * 1024))
+
+    def rename(self, old_name):
+        dialog = NewItemDialog(self)
+        dialog.setWindowTitle("重命名")
+        if dialog.exec_() == QDialog.Accepted:
+            new_name = dialog.get_input_text()
+            if old_name.endswith("/"):
+                if new_name:
+                    result, err = self.fs.rename_directory(
+                        old_name.rstrip("/"), new_name)
+                    if result:
+                        self.list()
+                    else:
+                        if err == 1:
+                            QtWidgets.QMessageBox.warning(self, "错误", "文件夹不存在")
+                        elif err == 2:
+                            QtWidgets.QMessageBox.warning(
+                                self, "错误", "新文件夹名不能与旧文件夹名相同")
+                        elif err == 3:
+                            QtWidgets.QMessageBox.warning(
+                                self, "错误", "新文件夹名已存在")
+                else:
+                    QtWidgets.QMessageBox.warning(self, "错误", "名字不能为空")
+            else:
+                if new_name:
+                    result, err = self.fs.rename_file(old_name, new_name)
+                    if result:
+                        self.list()
+                    else:
+                        if err == 1:
+                            QtWidgets.QMessageBox.warning(self, "错误", "文件不存在")
+                        elif err == 2:
+                            QtWidgets.QMessageBox.warning(
+                                self, "错误", "新文件名不能与旧文件名相同")
+                        elif err == 3:
+                            QtWidgets.QMessageBox.warning(
+                                self, "错误", "新文件名已存在")
+                else:
+                    QtWidgets.QMessageBox.warning(self, "错误", "名字不能为空")
+        else:
+            dialog.close()
 
 
 def main():

@@ -101,6 +101,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="rename_button">
+        <property name="text">
+         <string>重命名</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="delete_button">
         <property name="maximumSize">
          <size>
@@ -129,25 +136,6 @@
      </layout>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1172</width>
-     <height>40</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menu">
-    <property name="title">
-     <string>文件</string>
-    </property>
-    <addaction name="action"/>
-    <addaction name="action_2"/>
-    <addaction name="action_3"/>
-   </widget>
-   <addaction name="menu"/>
   </widget>
   <action name="action">
    <property name="text">

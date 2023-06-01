@@ -149,6 +149,45 @@ class FileSystem:
     def get_dir_item_nums(self, directory):
         return len(directory.files) + len(directory.subdirectories)
 
+    def rename_file(self, old_name, new_name):
+        """重命名文件
+        Returns:
+            bool: 是否成功
+            int: 错误码, 0表示成功, 1表示文件不存在, 2表示新文件名与旧文件名相同, 3表示新文件名已存在, 4表示新文件名为空
+        """
+        if new_name is None:
+            return False, 4
+        if new_name == old_name:
+            return False, 2
+        for file in self.current_directory.files:
+            if file.name == new_name:
+                return False, 3
+        file = self.current_directory.get_file(old_name)
+        if file:
+            file.name = new_name
+            return True, 0
+        else:
+            return False, 1
+
+    def rename_directory(self, old_name, new_name):
+        """重命名目录
+        Returns:
+            bool: 是否成功
+            int: 错误码, 0表示成功, 1表示目录不存在, 2表示新目录名与旧目录名相同, 3表示新目录名已存在, 4表示新目录名为空
+        """
+        if new_name is None:
+            return False, 4
+        if new_name == old_name:
+            return False, 2
+        if new_name in [dir.name for dir in self.current_directory.subdirectories]:
+            return False, 3
+        directory = self.current_directory.get_subdirectory(old_name)
+        if directory:
+            directory.name = new_name
+            return True, 0
+        else:
+            return False, 1
+
 
 class File:
     def __init__(self, name):
