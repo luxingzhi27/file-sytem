@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QMainWindow, QListWidget, QListWidgetItem, QDialog, QMenu
+from PyQt5.QtWidgets import QWidget, QMainWindow, QListWidget, QListWidgetItem, QDialog, QMenu, QLabel, QHBoxLayout, QSpacerItem
 from PyQt5.QtCore import Qt
 from file_system_ui import Ui_MainWindow
 from file_system_core import FileSystem as FS, File, Directory, load_from_disk
@@ -108,29 +108,58 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         """
         self.listWidget.clear()
         for file in self.fs.current_directory.files:
-            self.listWidget.addItem(QListWidgetItem(file.name))
-            self.listWidget.item(self.listWidget.count() -
-                                 1).setIcon(QIcon("resources/file.svg"))
+            item = QListWidgetItem()
+            size_label = QLabel(str(self.fs.get_file_size(file)) + "KB")
+            time_label = QLabel(self.fs.get_file_mtime(
+                file).strftime("%Y-%m-%d %H:%M:%S"))
+            name_label = QLabel(file.name)
+            widget = QWidget()
+            layout = QHBoxLayout()
+            layout.addWidget(name_label)
+            layout.addItem(QSpacerItem(
+                40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+            layout.addWidget(size_label)
+            layout.addItem(QSpacerItem(
+                20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+            layout.addWidget(time_label)
+            layout.setContentsMargins(0, 0, 0, 0)
+            widget.setLayout(layout)
+            self.listWidget.addItem(item)
+            item.setIcon(QIcon("resources/file.svg"))
+            self.listWidget.setItemWidget(item, widget)
             self.files.append(file)
 
         for directory in self.fs.current_directory.subdirectories:
-            self.listWidget.addItem(QListWidgetItem(directory.name+"/"))
-            self.listWidget.item(self.listWidget.count() -
-                                 1).setIcon(QIcon("resources/folder.svg"))
+            item = QListWidgetItem()
+            item.setIcon(QIcon("resources/folder.svg"))
+            name_label = QLabel(directory.name+"/")
+            num_label = QLabel(str(self.fs.get_dir_item_nums(directory)) + "项")
+            layout = QHBoxLayout()
+            widget = QWidget()
+            layout.addWidget(name_label)
+            spacer = QSpacerItem(
+                40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+            layout.addItem(spacer)
+            layout.addWidget(num_label)
+            widget.setLayout(layout)
+            self.listWidget.addItem(item)
+            self.listWidget.setItemWidget(item, widget)
             self.dirs.append(directory)
 
         self.listWidget.repaint()
 
     def on_double_clicked(self, index):
         item = self.listWidget.itemFromIndex(index)
+        widget = self.listWidget.itemWidget(item)
+        name = widget.layout().itemAt(0).widget().text()
         for file in self.files:
-            if file.name == item.text():
-                self.open_file(item.text())
+            if file.name == name:
+                self.open_file(name)
                 return
 
         for directory in self.dirs:
-            if directory.name == item.text().rstrip("/"):
-                self.open_directory(item.text())
+            if directory.name == name.rstrip("/"):
+                self.open_directory(name)
                 return
 
     def open_file(self, name):
@@ -155,10 +184,12 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
 
     def delete(self):
         item = self.listWidget.currentItem()
-        if item.text().endswith("/"):
-            self.delete_dir(item.text().rstrip("/"))
+        name = self.listWidget.itemWidget(
+            item).layout().itemAt(0).widget().text()
+        if name.endswith("/"):
+            self.delete_dir(name.rstrip("/"))
         else:
-            self.delete_file(item.text())
+            self.delete_file(name)
 
     def delete_file(self, name):
         self.fs.delete_file(name)
@@ -167,6 +198,17 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
     def delete_dir(self, name):
         self.fs.remove_directory(name)
         self.list()
+
+    def format_size(self, size):
+        # 格式化文件大小
+        if size < 1024:
+            return str(size) + " B"
+        elif size < 1024 * 1024:
+            return "{:.1f} KB".format(size / 1024)
+        elif size < 1024 * 1024 * 1024:
+            return "{:.1f} MB".format(size / (1024 * 1024))
+        else:
+            return "{:.1f} GB".format(size / (1024 * 1024 * 1024))
 
 
 def main():

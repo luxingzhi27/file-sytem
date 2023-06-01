@@ -140,6 +140,15 @@ class FileSystem:
             directory = directory.parent
         return path
 
+    def get_file_size(self, file):
+        return file.inode.file_size
+
+    def get_file_mtime(self, file):
+        return file.inode.mtime
+
+    def get_dir_item_nums(self, directory):
+        return len(directory.files) + len(directory.subdirectories)
+
 
 class File:
     def __init__(self, name):
