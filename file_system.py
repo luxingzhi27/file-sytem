@@ -64,9 +64,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             self.open_file(self.listWidget.itemWidget(
                 item).layout().itemAt(0).widget().text())
         elif action == rename_action:
-            item = self.listWidget.currentItem()
-            self.rename(self.listWidget.itemWidget(
-                item).layout().itemAt(0).widget().text())
+            self.rename()
 
     def new_directory_dialog(self):
         dialog = NewItemDialog(self)
@@ -222,7 +220,10 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         else:
             return "{:.1f} GB".format(size / (1024 * 1024 * 1024))
 
-    def rename(self, old_name):
+    def rename(self):
+        item = self.listWidget.currentItem()
+        old_name = self.listWidget.itemWidget(
+            item).layout().itemAt(0).widget().text()
         dialog = NewItemDialog(self)
         dialog.setWindowTitle("重命名")
         if dialog.exec_() == QDialog.Accepted:
