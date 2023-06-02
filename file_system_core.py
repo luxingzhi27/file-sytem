@@ -34,9 +34,10 @@ class FileSystem:
     def __init__(self):
         self.root = Directory("/", None)
         self.current_directory = self.root
-        self.file_block_nums = 2560*4
-        self.valid_blocks = bytearray(self.file_block_nums)
-        self.space = [Block() for _ in range(self.file_block_nums)]
+        self.file_block_nums = 2560*4  # 块数量
+        self.valid_blocks = bytearray(
+            self.file_block_nums)    # 位图管理空闲空间，0表示空闲, 1表示已使用
+        self.space = [Block() for _ in range(self.file_block_nums)]  # 文件系统整体空间
         self.used_size = 0
 
     def create_file(self, name):
