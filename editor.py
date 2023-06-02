@@ -28,6 +28,8 @@ class TextEditor(QMainWindow, Ui_MainWindow):
         self.setWindowTitle(self.file_name)
 
     def save_file(self):
+        if self.is_saved:
+            return
         self.text_saved.emit(self.textEdit.toPlainText())
         self.is_saved = True
         self.setWindowTitle(self.file_name)

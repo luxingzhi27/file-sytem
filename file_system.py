@@ -32,6 +32,8 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         self.return_root_button.clicked.connect(self.back_to_root)
         self.delete_button.clicked.connect(self.delete)
         self.rename_button.clicked.connect(self.rename)
+        self.format_button.clicked.connect(self.fformat)
+
         self.list()
         self.path_label.setText(self.fs.current_directory.name)
         if self.fs.current_directory.name == "/":
@@ -48,6 +50,7 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         delete_action = menu.addAction("删除")
         open_file_action = menu.addAction("打开文件")
         rename_action = menu.addAction("重命名")
+        format_action = menu.addAction("格式化")
 
         # 显示菜单，并等待用户选择
         action = menu.exec_(self.listWidget.mapToGlobal(pos))
@@ -65,6 +68,8 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
                 item).layout().itemAt(0).widget().text())
         elif action == rename_action:
             self.rename()
+        elif action == format_action:
+            self.fformat()
 
     def new_directory_dialog(self):
         dialog = NewItemDialog(self)
@@ -155,7 +160,12 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
             self.listWidget.setItemWidget(item, widget)
             self.dirs.append(directory)
 
+        total, used = self.fs.get_total_and_used_space_size()
+        self.size_label.setText(
+            "已使用空间：" + self.format_size(used) + " / " + self.format_size(total))
+
         self.listWidget.repaint()
+        self.size_label.repaint()
 
     def on_double_clicked(self, index):
         item = self.listWidget.itemFromIndex(index)
@@ -179,9 +189,11 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
         self.text_editor.show()
 
     def save_file(self, text):
-        self.fs.write_file(self.text_editor.file_name,
-                           bytearray(text, "utf-8"))
-        self.list()
+        if self.fs.write_file(self.text_editor.file_name,
+                              bytearray(text, "utf-8")):
+            self.list()
+        else:
+            QtWidgets.QMessageBox.warning(self, "错误", "保存失败,空间不足")
 
     def open_directory(self, name):
         self.return_button.setEnabled(True)
@@ -263,6 +275,10 @@ class FileSystem_ui(QMainWindow, Ui_MainWindow):
                     QtWidgets.QMessageBox.warning(self, "错误", "名字不能为空")
         else:
             dialog.close()
+
+    def fformat(self):
+        self.fs.fformat()
+        self.list()
 
 
 def main():

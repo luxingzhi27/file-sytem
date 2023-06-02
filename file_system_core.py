@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Block:
     def __init__(self):
-        self.block_size = 1024
+        self.block_size = 1024*4
         self.data = bytearray(self.block_size)
 
     def write(self, data: bytearray):
@@ -34,9 +34,10 @@ class FileSystem:
     def __init__(self):
         self.root = Directory("/", None)
         self.current_directory = self.root
-        self.file_block_nums = 2560
+        self.file_block_nums = 2560*4
         self.valid_blocks = bytearray(self.file_block_nums)
         self.space = [Block() for _ in range(self.file_block_nums)]
+        self.used_size = 0
 
     def create_file(self, name):
         for file in self.current_directory.files:
@@ -50,8 +51,7 @@ class FileSystem:
     def delete_file(self, name):
         file = self.current_directory.get_file(name)
         if file:
-            file.clear(self)
-            self.current_directory.remove_file(file)
+            self.current_directory.remove_file(file, self)
             return True
         else:
             print("File not found")
@@ -67,10 +67,7 @@ class FileSystem:
     def write_file(self, name, data):
         file = self.current_directory.get_file(name)
         if file:
-            if file.write(data, self):
-                return True
-            else:
-                return False
+            return file.write(data, self)
         else:
             return False
 
@@ -114,12 +111,12 @@ class FileSystem:
     def remove_directory(self, name):
         for subdirectory in self.current_directory.subdirectories:
             if name == subdirectory.name:
-                self.current_directory.remove_subdirectory(subdirectory)
+                self.current_directory.remove_subdirectory(subdirectory, self)
                 return True
         directory = self.find_directory(self.root, name)
         parent = directory.parent
         if directory:
-            parent.remove_subdirectory(directory)
+            parent.remove_subdirectory(directory, self)
             return True
         else:
             print("Directory not found")
@@ -188,6 +185,21 @@ class FileSystem:
         else:
             return False, 1
 
+    def fformat(self):
+        for file in self.root.files:
+            self.root.remove_file(file, self)
+        self.root.remove_all_subdirectories(self)
+
+    def get_total_and_used_space_size(self):
+        return self.file_block_nums*1024*4, self.used_size
+
+    def get_valid_block_nums(self) -> int:
+        result = 0
+        for block in self.valid_blocks:
+            if block == 0:
+                result += 1
+        return result
+
 
 class File:
     def __init__(self, name):
@@ -203,9 +215,14 @@ class File:
         return data
 
     def write(self, data: bytearray, fs: FileSystem) -> bool:
+        valid_block_nums = fs.get_valid_block_nums()
+        block_count = len(data) // (1024*4) + 1
+        if block_count > valid_block_nums:
+            print("No more space available")
+            return False
         self.clear(fs)
         self.inode.file_size = len(data)
-        block_count = len(data) // 1024 + 1
+        fs.used_size += self.inode.file_size
         for i in range(block_count):
             j = 0
             for j in range(fs.file_block_nums):
@@ -215,7 +232,8 @@ class File:
                     if i == 0:
                         self.inode.mtime = datetime.now()
                         self.inode.atime = datetime.now()
-                    block.write(data[i * 1024: min((i + 1) * 1024, len(data))])
+                    block.write(
+                        data[i * 1024*4: min((i + 1) * 1024*4, len(data))])
                     self.inode.add_block(j)
                     break
             if j == fs.file_block_nums-1:
@@ -226,6 +244,7 @@ class File:
     def clear(self, fs: FileSystem):
         """释放文件占用block
         """
+        fs.used_size -= self.inode.file_size
         self.inode.ctime = datetime.now()
         self.inode.mtime = datetime.now()
         self.inode.atime = datetime.now()
@@ -245,7 +264,8 @@ class Directory:
     def add_file(self, file):
         self.files.append(file)
 
-    def remove_file(self, file):
+    def remove_file(self, file, fs: FileSystem):
+        file.clear(fs)
         self.files.remove(file)
 
     def get_file(self, name):
@@ -256,21 +276,21 @@ class Directory:
     def add_subdirectory(self, directory):
         self.subdirectories.append(directory)
 
-    def remove_subdirectory(self, directory):
+    def remove_subdirectory(self, directory, fs: FileSystem):
         if directory in self.subdirectories:
             for file in directory.files:
-                directory.remove_file(file)
+                directory.remove_file(file, fs)
             self.subdirectories.remove(directory)
             directory.parent = None
-            directory.remove_all_subdirectories()
+            directory.remove_all_subdirectories(fs)
 
-    def remove_all_subdirectories(self):
+    def remove_all_subdirectories(self, fs: FileSystem):
         for directory in self.subdirectories:
             for file in directory.files:
-                directory.remove_file(file)
-            self.subdirectories.remove(directory)
+                directory.remove_file(file, fs)
             directory.parent = None
-            directory.remove_all_subdirectories()
+            directory.remove_all_subdirectories(fs)
+        self.subdirectories = []
 
     def get_subdirectory(self, name):
         for directory in self.subdirectories:
